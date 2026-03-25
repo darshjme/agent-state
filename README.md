@@ -1,10 +1,12 @@
 <div align="center">
 
-<img src="assets/agent-state-hero.png" alt="agent-state — Vedic Arsenal" width="100%" />
+<img src="assets/agent-state-hero.png" alt="agent-state — Vedic Arsenal by Darshankumar Joshi" width="100%" />
 
 # 🔮 agent-state
 
-### *अवस्था* — Avastha — the three states of being
+<h3><em>अवस्था</em></h3>
+
+> *Avastha — the three states of being*
 
 **Persistent state management for LLM agents — session checkpointing, TTL key-value store, immutable snapshots. Zero dependencies.**
 
@@ -39,6 +41,20 @@ Or clone directly:
 git clone https://github.com/darshjme/agent-state.git
 cd agent-state
 pip install -e .
+```
+
+## How It Works
+
+```mermaid
+flowchart TD
+    A[Init State] --> B[Active]
+    B --> C{Event?}
+    C -- Checkpoint --> D[Snapshot]
+    C -- Restore --> E[Load Snapshot]
+    C -- Expire --> F[TTL Eviction]
+    D --> B
+    E --> B
+    style B fill:#3b82f6,color:#fff
 ```
 
 ## Quick Start
@@ -90,7 +106,7 @@ MIT — use freely, build freely.
 
 <div align="center">
 
-**Built with 🔮 by [Darshankumar Joshi](https://github.com/darshjme)**
+**Built with 🔮 by [Darshankumar Joshi](https://github.com/darshjme)** · [@thedarshanjoshi](https://twitter.com/thedarshanjoshi)
 
 *"कर्मण्येवाधिकारस्ते मा फलेषु कदाचन"*
 *Your right is to action alone, never to the fruits thereof.*

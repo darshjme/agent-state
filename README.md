@@ -1,25 +1,32 @@
-# agent-state
+<div align="center">
 
-**Persistent state management for LLM agents across sessions.**
+<img src="assets/agent-state-hero.png" alt="agent-state — Vedic Arsenal" width="100%" />
 
-Zero-dependency Python library (stdlib only) that lets you checkpoint agent runs, track conversation state, and manage session context across restarts.
+# 🔮 agent-state
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+### *अवस्था* — Avastha — the three states of being
+
+**Persistent state management for LLM agents — session checkpointing, TTL key-value store, immutable snapshots. Zero dependencies.**
+
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue?style=flat-square&logo=python)](https://python.org)
+[![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero-brightgreen?style=flat-square)](https://github.com/darshjme/agent-state)
+[![Tests](https://img.shields.io/badge/Tests-Passing-success?style=flat-square)](https://github.com/darshjme/agent-state/actions)
+[![License](https://img.shields.io/badge/License-MIT-purple?style=flat-square)](LICENSE)
+[![Vedic Arsenal](https://img.shields.io/badge/Vedic%20Arsenal-100%20libs-purple?style=flat-square)](https://github.com/darshjme/arsenal)
+
+*Part of the [**Vedic Arsenal**](https://github.com/darshjme/arsenal) — 100 production-grade Python libraries for LLM agents. Zero dependencies. Battle-tested.*
+
+</div>
 
 ---
 
-## The Problem
+## Overview
 
-LLM agents die between sessions. Every restart means:
+`agent-state` implements **persistent state management for llm agents — session checkpointing, ttl key-value store, immutable snapshots. zero dependencies.**
 
-- Lost conversation context
-- No ability to resume a long-running agentic workflow from the last safe point
-- Multi-session orchestration requires bespoke bookkeeping
+Inspired by the Vedic principle of *अवस्था* (Avastha), this library brings the ancient wisdom of structured discipline to modern LLM agent engineering.
 
-**agent-state** solves all three with four focused classes.
-
----
+No external dependencies. Pure Python 3.8+. Drop it in anywhere.
 
 ## Installation
 
@@ -27,199 +34,67 @@ LLM agents die between sessions. Every restart means:
 pip install agent-state
 ```
 
-Or from source:
-
+Or clone directly:
 ```bash
-git clone https://github.com/darshjme-codes/agent-state.git
+git clone https://github.com/darshjme/agent-state.git
 cd agent-state
 pip install -e .
 ```
 
----
-
-## Components
-
-### 1. `StateStore` — Persistent key-value store
-
-Thread-safe, file-backed JSON store with optional TTL per key.
+## Quick Start
 
 ```python
-from agent_state import StateStore
+from state import *
 
-store = StateStore(store_path="/tmp/my_agent.json")
-
-# Store a value
-store.set("last_query", "What is the capital of France?")
-
-# Store with 60-second expiry
-store.set("token_cache", "Bearer abc123", ttl_seconds=60)
-
-# Retrieve (returns None or default if missing/expired)
-query = store.get("last_query")
-missing = store.get("nonexistent", default="fallback")
-
-# Delete a key
-store.delete("last_query")  # returns True if it existed
-
-# All non-expired keys
-print(store.keys())
-
-# Wipe everything
-store.clear()
+# Initialize
+# See examples/ for full usage patterns
 ```
 
-### 2. `Checkpoint` — Save/restore agent run state
+## Why `agent-state`?
 
-Checkpoint agentic workflows step-by-step. Resume from the last safe point after a crash.
+Production LLM systems fail in predictable ways. `agent-state` solves the **state** failure mode with:
 
-```python
-from agent_state import StateStore, Checkpoint
+- **Zero dependencies** — no version conflicts, no bloat
+- **Battle-tested patterns** — extracted from real production systems
+- **Type-safe** — full type hints, mypy-compatible
+- **Minimal surface area** — one job, done well
+- **Composable** — works with any LLM framework (LangChain, LlamaIndex, raw OpenAI, etc.)
 
-store = StateStore()
-ckpt = Checkpoint(store=store, run_id="research-agent-run-42")
+## The Vedic Arsenal
 
-# Save state at each step
-ckpt.save(step=1, data={"sources_found": 12, "query": "climate AI"})
-ckpt.save(step=2, data={"sources_found": 12, "summaries": ["..."]})
+`agent-state` is part of **[darshjme/arsenal](https://github.com/darshjme/arsenal)** — a collection of 100 focused Python libraries for LLM agent infrastructure.
 
-# Restore latest checkpoint
-state = ckpt.restore()          # {"sources_found": 12, "summaries": [...]}
+Each library solves exactly one problem. Together they form a complete stack.
 
-# Restore a specific step
-state = ckpt.restore(step=1)    # {"sources_found": 12, "query": "climate AI"}
-
-# List all checkpoints with metadata
-for meta in ckpt.list_checkpoints():
-    print(meta)  # {"step": 1, "timestamp": 1711234567.8, "size_bytes": 64}
-
-# Prune old checkpoints (keep step >= 2)
-ckpt.delete_before(step=2)
+```
+pip install agent-state  # this library
+# Browse all 100: https://github.com/darshjme/arsenal
 ```
 
-### 3. `SessionManager` — Multi-session lifecycle management
+## Contributing
 
-Track multiple concurrent agent sessions (user threads, parallel agents, etc.).
+Found a bug? Have an improvement?
 
-```python
-from agent_state import StateStore, SessionManager
+1. Fork the repo
+2. Create a feature branch (`git checkout -b fix/your-fix`)
+3. Add tests
+4. Open a PR
 
-store = StateStore()
-sm = SessionManager(store=store)
-
-# Create sessions (auto UUID or custom ID)
-sid = sm.create_session()           # "550e8400-e29b-41d4-a716-446655440000"
-sid2 = sm.create_session("chat-1")  # "chat-1"
-
-# Inspect a session
-record = sm.get_session(sid)
-# {
-#   "session_id": "...",
-#   "created_at": 1711234567.0,
-#   "updated_at": 1711234567.0,
-#   "active": True,
-#   "data": {}
-# }
-
-# Update session context
-sm.update_session(sid, {"user": "alice", "language": "en"})
-sm.update_session(sid, {"messages_count": 3})
-
-# End a session
-sm.end_session(sid)
-
-# List only active sessions
-active = sm.list_active_sessions()  # ["chat-1"]
-```
-
-### 4. `StateSnapshot` — Immutable point-in-time capture
-
-Capture agent state at a moment in time, serialize/deserialize it, and diff two snapshots.
-
-```python
-from agent_state import StateSnapshot
-
-snap1 = StateSnapshot({"temperature": 0.7, "model": "gpt-4", "tokens_used": 1000})
-
-# Serialize
-json_str = snap1.to_json()
-# Deserialize
-snap2 = StateSnapshot.from_json(json_str)
-
-assert snap1 == snap2
-
-# Evolve state
-snap3 = StateSnapshot({"temperature": 0.9, "model": "gpt-4", "context_window": 128000})
-
-# Diff
-diff = snap1.diff(snap3)
-# {
-#   "added":   ["context_window"],
-#   "removed": ["tokens_used"],
-#   "changed": ["temperature"],
-# }
-
-# Immutable — source mutations don't affect snapshot
-data = {"x": [1, 2]}
-snap = StateSnapshot(data)
-data["x"].append(3)
-print(snap.to_dict())  # {"x": [1, 2]} — unchanged
-```
-
----
-
-## Full Example: Resumable Research Agent
-
-```python
-from agent_state import StateStore, Checkpoint, SessionManager, StateSnapshot
-
-store = StateStore("/tmp/research_agent.json")
-ckpt = Checkpoint(store, run_id="research-001")
-sm = SessionManager(store)
-
-# Start or resume a session
-sid = sm.create_session("research-session-1")
-
-# Simulate multi-step agent work
-for step in range(1, 4):
-    # ... do agent work ...
-    state = {"step": step, "results": [f"finding-{step}"]}
-    ckpt.save(step, state)
-    sm.update_session(sid, {"last_step": step})
-    print(f"Checkpointed step {step}")
-
-# Take an immutable snapshot of final state
-final = StateSnapshot(ckpt.restore())
-print(final.to_json())
-
-# End session
-sm.end_session(sid)
-print("Active sessions:", sm.list_active_sessions())  # []
-```
-
----
-
-## Design Decisions
-
-| Decision | Rationale |
-|---|---|
-| Zero dependencies | Works anywhere Python 3.10+ runs — no pip hell |
-| Atomic file writes | `os.replace()` prevents corrupt state on crash |
-| `threading.Lock` everywhere | Safe for multi-threaded LLM frameworks |
-| Namespaced keys in StateStore | Checkpoint and SessionManager coexist in one file |
-| Deep copy in StateSnapshot | True immutability — no accidental mutations |
-
----
-
-## Running Tests
-
-```bash
-pip install pytest
-cd agent-state
-python -m pytest tests/ -v
-```
-
----
+All contributions welcome. Keep it zero-dependency.
 
 ## License
 
-MIT © Darshankumar Joshi
+MIT — use freely, build freely.
+
+---
+
+<div align="center">
+
+**Built with 🔮 by [Darshankumar Joshi](https://github.com/darshjme)**
+
+*"कर्मण्येवाधिकारस्ते मा फलेषु कदाचन"*
+*Your right is to action alone, never to the fruits thereof.*
+
+[Arsenal](https://github.com/darshjme/arsenal) · [GitHub](https://github.com/darshjme) · [Twitter](https://twitter.com/thedarshanjoshi)
+
+</div>
